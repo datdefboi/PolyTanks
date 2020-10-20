@@ -21,6 +21,8 @@ namespace Core.Abstractions
                                         Math.Cos(Math.PI * (state.Speed / appliance.MaxSpeed) / 2f) * elapsed);
             }
 
+            var lastRotation = state.Rotation;
+
             if (data.keys.Contains("S"))
             {
                 state.Speed = (float) (Math.Max(0, state.Speed - 40 * elapsed));
@@ -28,12 +30,16 @@ namespace Core.Abstractions
             
             if (data.keys.Contains("A"))
             {
-                state.Rotation += 30f * elapsed;
+                var movement = appliance.RotationSpeed * elapsed;
+                state.Rotation += movement;
+                state.GunRotation += movement;
             }
             
             if (data.keys.Contains("D"))
             {
-                state.Rotation -= 30f * elapsed;
+                var movement = appliance.RotationSpeed * elapsed;
+                state.Rotation -= movement;
+                state.GunRotation -= movement;
             }
 
             var target = 0f;
@@ -50,7 +56,7 @@ namespace Core.Abstractions
             if (state.GunRotation == 180 || state.GunRotation == -180)
                 state.GunRotation = 179 * Math.Sign(data.mouseDir);
             else
-                state.GunRotation = MathF.Reach(state.GunRotation, target, 30 * elapsed);
+                state.GunRotation = MathF.Reach(state.GunRotation, target, appliance.TurretSpeed * elapsed);
 
             /*if (Keyboard.Pressed[Keys.Up] && Speed < MaxSpeed)
                  Speed += Acceleration * d;

@@ -29,9 +29,9 @@ namespace PolyTanks.Helpers
         }
 
         public IEnumerator GetEnumerator() => points.GetEnumerator();
-        IEnumerator<Vector> IEnumerable<Vector>.GetEnumerator() => ((IEnumerable<Vector>)points).GetEnumerator();
+        IEnumerator<Vector> IEnumerable<Vector>.GetEnumerator() => ((IEnumerable<Vector>) points).GetEnumerator();
 
-        public static implicit operator PointF[](VectorGroup group) => group.points.Select(p => (PointF)p).ToArray();
+        public static implicit operator PointF[](VectorGroup group) => group.points.Select(p => (PointF) p).ToArray();
 
         public VectorGroup Rotate(Vector relativePoint, float angle) => new VectorGroup(points.Select(p =>
         {
@@ -40,6 +40,8 @@ namespace PolyTanks.Helpers
         }).ToArray());
 
         public VectorGroup Move(Vector direction) => new VectorGroup(points.Select(p => p + direction).ToArray());
+
+        public VectorGroup Scale(float factor) => new VectorGroup(points.Select(p => p * factor).ToArray());
 
         public bool IsIntersectsByBounding(VectorGroup other)
         {
@@ -65,19 +67,19 @@ namespace PolyTanks.Helpers
             bool Intersect(Vector a, Vector b, Vector c, Vector d)
             {
                 return SubIntersect(a.X, b.X, c.X, d.X)
-                    && SubIntersect(a.Y, b.Y, c.Y, d.Y)
-                    && Area(a, b, c) * Area(a, b, d) <= 0
-                    && Area(c, d, a) * Area(c, d, b) <= 0;
+                       && SubIntersect(a.Y, b.Y, c.Y, d.Y)
+                       && Area(a, b, c) * Area(a, b, d) <= 0
+                       && Area(c, d, a) * Area(c, d, b) <= 0;
             }
 
             for (int i = 0; i < points.Length - 1; i++)
-                for (int j = 0; j < other.points.Length - 1; j++)
+            for (int j = 0; j < other.points.Length - 1; j++)
+            {
+                if (Intersect(points[i], points[i + 1], other.points[j], other.points[j + 1]))
                 {
-                    if (Intersect(points[i], points[i + 1], other.points[j], other.points[j + 1]))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
+            }
 
             return false;
         }

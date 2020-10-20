@@ -9,6 +9,8 @@ using Core;
 using Core.Specs;
 using Microsoft.AspNetCore.SignalR.Client;
 using PolyTanks.Engine;
+using PolyTanks.Shared;
+using PolyTanks.Shared.Maps;
 using MathF = PolyTanks.Helpers.MathF;
 
 namespace PolyTanks.Frontend
@@ -27,6 +29,10 @@ namespace PolyTanks.Frontend
         private T1Appliance _t1Appliance = new T1Appliance();
         private IFrame _frame;
 
+        private MapBase _map;
+
+        private bool _isConnected = false;
+
         private async void RenderForm_Load(object sender, EventArgs e)
         {
             DoubleBuffered = true;
@@ -41,13 +47,23 @@ namespace PolyTanks.Frontend
                 .Build();
 
             roomHub.On<TankState, IEnumerable<TankState>>("UpdateTanks", TankUpdates);
+            roomHub.On<string>("LoadMap", LoadMap);
 
             await roomHub.StartAsync();
+        }
+
+        private void LoadMap(string name)
+        {
+            _map = name switch
+            {
+                "Berlin" => new BerlinMap()
+            };
         }
 
         private void TankUpdates(TankState cs, IEnumerable<TankState> ens)
         {
             currentState = cs;
+            _isConnected = true;
             Refresh();
         }
 
@@ -58,17 +74,32 @@ namespace PolyTanks.Frontend
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
             _frame = new Frame(g, Width, Height);
-
-            var rq = new List<TankState>();
-            rq.Add(currentState);
-            rq.AddRange(enemiesStates);
-
-            foreach (var state in rq)
+            
+            if (_isConnected)
             {
-                if (state != default)
+                _frame.LookAt(currentState.Position);
+                
+                var rq = new List<TankState>();
+                rq.Add(currentState);
+                rq.AddRange(enemiesStates);
+
+                foreach (var state in rq)
                 {
-                    _t1Appliance.Render(_frame, state);
+                    if (state != default)
+                    {
+                        _t1Appliance.Render(_frame, state);
+                    }
                 }
+
+                foreach (var wall in _map.Walls)
+                {
+                    _frame.FillPolygon(wall.Bounds.Move(wall.Position).Scale(_map.ScallingFactor),
+                        Color.FromName(wall.ColorCode));
+                }
+            }
+            else
+            {
+                g.DrawString("Connecting", new Font(FontFamily.GenericMonospace, 20), Brushes.Black, 0, 0);
             }
 
             /*if (currentState != null)
@@ -86,8 +117,8 @@ namespace PolyTanks.Frontend
         {
             if (DateTime.Now - lastMouseEvent > MouseCooldown)
             {
-                var x = e.Location.X / (float)Width * 2 - 1;
-                var y = e.Location.Y / (float)Height * 2 - 1;
+                var x = e.Location.X / (float) Width * 2 - 1;
+                var y = e.Location.Y / (float) Height * 2 - 1;
                 var angle = MathF.Atan2(y, x);
                 roomHub.SendAsync("MouseMove", angle);
 

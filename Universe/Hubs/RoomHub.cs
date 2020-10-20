@@ -23,28 +23,35 @@ namespace Server
         public override async Task OnConnectedAsync()
         {
             _logger.LogInformation("New player in room");
-            
-            _roomRuntime.AddNewPlayer(Context.ConnectionId);
+
+            await _roomRuntime.AddNewPlayerAsync(Context.ConnectionId);
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            _logger.LogInformation("Player disconnected");
+
+            await _roomRuntime.RemovePlayerAsync(Context.ConnectionId);
         }
 
         public async Task KeyDown(string key)
         {
             _logger.LogInformation($"User input down {Context.ConnectionId}");
-            
+
             _roomRuntime.HandleKeyDown(Context.ConnectionId, key);
         }
-        
+
         public async Task MouseMove(float dir)
         {
             _logger.LogInformation($"User input mouse {Context.ConnectionId} {dir}");
-            
+
             _roomRuntime.HandleMouseDirection(Context.ConnectionId, dir);
         }
 
         public async Task KeyUp(string key)
         {
             _logger.LogInformation($"User input up {Context.ConnectionId}");
-            
+
             _roomRuntime.HandleKeyUp(Context.ConnectionId, key);
         }
     }

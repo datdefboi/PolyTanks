@@ -26,7 +26,8 @@ namespace PolyTanks.Engine
         }
 
         private PointF[] NormalizeCoords(VectorGroup group) =>
-            group.Select(p => new PointF(p.X + _width / 2, _height - p.Y - _height / 2)).ToArray();
+            group.Select(p => new PointF(p.X + _width / 2 - camOffset.X, _height - p.Y - _height / 2 + camOffset.Y))
+                .ToArray();
 
         public void DrawPolygon(VectorGroup points, Color color, bool isCurved =
             false, float stroke = 1)
@@ -53,13 +54,13 @@ namespace PolyTanks.Engine
         public void FillCircle(Vector position, float radius, Color color)
         {
             _currentGraphics.FillEllipse(new SolidBrush(color),
-                position.X - radius + _width / 2,
-                _height - (position.Y + radius + _height / 2), radius * 2, radius * 2);
+                position.X - radius + _width / 2 - camOffset.X,
+                _height - (position.Y + radius + _height / 2 - camOffset.Y), radius * 2, radius * 2);
         }
 
-        public void LookAt(TankState state)
+        public void LookAt(Vector point)
         {
-            camOffset = state.Position;
+            camOffset = point;
         }
     }
 }

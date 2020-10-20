@@ -43,11 +43,13 @@ namespace Server.Services
             return go;
         }
 
-        public void AddNewPlayer(string pID)
+        public async Task AddNewPlayerAsync(string pID)
         {
             var newTank = CreateNewTank();
 
             Console.WriteLine("New player in room");
+
+            await _room.Clients.Client(pID).LoadMap("Berlin");
 
             _playerDatas.Add(pID, new PlayerData
             {
@@ -56,8 +58,10 @@ namespace Server.Services
             });
         }
 
-        public void RemovePlayer(string pID)
+        public async Task RemovePlayerAsync(string pID)
         {
+            _playerDatas.Remove(pID);
+            await UpdateUniverseAsync();
         }
 
         public void HandleKeyDown(string pID, string key)
@@ -86,7 +90,11 @@ namespace Server.Services
         private async void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
             _logger.LogTrace("Universe tick");
+            await UpdateUniverseAsync();
+        }
 
+        private async Task UpdateUniverseAsync()
+        {
             foreach (var (id, data) in _playerDatas)
             {
                 var appliance = AppliancesRepository.ForID(data.tank.ApplianceID);
