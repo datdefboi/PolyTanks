@@ -1,4 +1,6 @@
-﻿namespace PolyTanks.Frontend
+﻿using System.Drawing;
+
+namespace PolyTanks.Frontend
 {
     partial class RenderForm
     {
@@ -44,6 +46,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
+            this.MinimumSize = this.MaximumSize = new Size(900, 700);
             this.ClientSize = new System.Drawing.Size(1226, 868);
             this.Name = "RenderForm";
             this.Text = "Midnight Racer";

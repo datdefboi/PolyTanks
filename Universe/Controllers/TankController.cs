@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Core.Specs;
 using Microsoft.Extensions.Logging;
 using PolyTanks.Helpers;
+using PolyTanks.Shared;
 using Server;
 using MathF = PolyTanks.Helpers.MathF;
 
@@ -27,14 +28,14 @@ namespace Core.Abstractions
             {
                 state.Speed = (float) (Math.Max(0, state.Speed - 40 * elapsed));
             }
-            
+
             if (data.keys.Contains("A"))
             {
                 var movement = appliance.RotationSpeed * elapsed;
                 state.Rotation += movement;
                 state.GunRotation += movement;
             }
-            
+
             if (data.keys.Contains("D"))
             {
                 var movement = appliance.RotationSpeed * elapsed;
@@ -57,56 +58,10 @@ namespace Core.Abstractions
                 state.GunRotation = 179 * Math.Sign(data.mouseDir);
             else
                 state.GunRotation = MathF.Reach(state.GunRotation, target, appliance.TurretSpeed * elapsed);
-
-            /*if (Keyboard.Pressed[Keys.Up] && Speed < MaxSpeed)
-                 Speed += Acceleration * d;
-             if (Keyboard.Pressed[Keys.Down] && Speed > 0)
-                 Speed -= Acceleration * d;
-             Debug.Write("DBG:Speed KM/h", (Speed / AxisDistance * 4.4f) / 3.6 * 2);
- 
-             if (Keyboard.Pressed[Keys.Left])
-                 SteerAngle += SteerSpeed * d;
-             else if (Keyboard.Pressed[Keys.Right])
-                 SteerAngle -= SteerSpeed * d;
-             else if (Abs(SteerAngle) > 0.1f)
-                 SteerAngle -= Sign(SteerAngle) * 40f * d;
- 
-             Debug.Write("DBG:steer angle", SteerAngle);
- 
-             var turnRadius = AxisDistance / Sin(SteerAngle);
-             Debug.Write("DBG:radius", turnRadius);
-             var currentRotation = ToDeg(Speed / turnRadius);
-             overload = Speed / turnRadius;
-             if (Math.Abs(overload) > 1)
-             {
-                 var angle = ToDeg((float) Math.Asin(
-                     AxisDistance / Speed /
-                     Math.Abs(overload)));
-                 SteerAngle = Sign(SteerAngle) * angle;
-             }
- 
-             SteerAngle = Sign(SteerAngle) * Min(MaxSteerAngle, Abs(SteerAngle));
- 
-             Debug.Write("DBG:ovd", overload);
-             Debug.Write("DBG:cur rot", currentRotation);
-             Rotate(currentRotation * d);
-             //speed -= steerAngle * angularDrag * d;
- 
-             Fuel -= FuelConsumptionPerSec * d;
- 
-             if (Fuel < 0)
-             {
-                 Fuel = 0;
-                 Destroy();
-             }
- 
-             Position += Vector.FromAngle(Rotation) * Speed * d;*/
         }
 
-        /*public static bool CheckIntersections(TankState o1, TankState o2)
+        public static bool CheckIntersections(TankState o1, TankAppliance appliance, MapBase map)
         {
-            var s1 = SpecsProvider.GetSpecForID(o1.SpecID);
-            var s2 = SpecsProvider.GetSpecForID(o2.SpecID);
             var selfBounds = s1.Bounds
                 .Move(s1.Origin)
                 .Rotate(Vector.Zero, o1.Rotation)
@@ -135,6 +90,6 @@ namespace Core.Abstractions
             }
 
             return false;
-        }*/
+        }
     }
 }

@@ -73,12 +73,12 @@ namespace PolyTanks.Frontend
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
-            _frame = new Frame(g, Width, Height);
-            
+            _frame = new Frame(g, Width, Height, 0.5f);
+
             if (_isConnected)
             {
                 _frame.LookAt(currentState.Position);
-                
+
                 var rq = new List<TankState>();
                 rq.Add(currentState);
                 rq.AddRange(enemiesStates);
@@ -96,6 +96,7 @@ namespace PolyTanks.Frontend
                     _frame.FillPolygon(wall.Bounds.Move(wall.Position).Scale(_map.ScallingFactor),
                         Color.FromName(wall.ColorCode));
                 }
+                
             }
             else
             {

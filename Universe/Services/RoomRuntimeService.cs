@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PolyTanks.Helpers;
+using PolyTanks.Shared;
+using PolyTanks.Shared.Maps;
 using Timer = System.Timers.Timer;
 
 namespace Server.Services
@@ -27,11 +29,16 @@ namespace Server.Services
         private Timer timer;
         private DateTime lastUpdate;
 
+        private MapBase _map;
+
         private Dictionary<string, PlayerData> _playerDatas = new Dictionary<string, PlayerData>();
 
         public RoomRuntimeService(IHubContext<RoomHub, IRoomHubClient> room, ILogger<RoomRuntimeService> logger)
         {
             _room = room;
+            
+            _map = new BerlinMap();
+            
             _logger = logger;
         }
 
