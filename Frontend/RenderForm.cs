@@ -48,6 +48,7 @@ namespace PolyTanks.Frontend
         private void TankUpdates(TankState cs, IEnumerable<TankState> ens)
         {
             currentState = cs;
+            enemiesStates = ens;
             Refresh();
         }
 
@@ -86,8 +87,8 @@ namespace PolyTanks.Frontend
         {
             if (DateTime.Now - lastMouseEvent > MouseCooldown)
             {
-                var x = e.Location.X / (float)Width * 2 - 1;
-                var y = e.Location.Y / (float)Height * 2 - 1;
+                var x = e.Location.X / (float) Width * 2 - 1;
+                var y = e.Location.Y / (float) Height * 2 - 1;
                 var angle = MathF.Atan2(y, x);
                 roomHub.SendAsync("MouseMove", angle);
 
