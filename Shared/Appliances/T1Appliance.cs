@@ -42,7 +42,7 @@ namespace Core.Specs
 
             var head = headVGroup
                 .Move(Origin)
-                .Rotate(Vector.Zero, state.Rotation + state.GunRotation - 90)
+                .Rotate(Vector.Zero, state.GunRotation - 90)
                 .Move(state.Position);
 
             frame.FillPolygon(body, Color.DarkOliveGreen, false);
