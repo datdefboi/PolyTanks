@@ -1,0 +1,8 @@
+﻿.idea/
+.vs/
+/Frontend/bin/
+/Frontend/obj/
+/Shared/bin/
+/Shared/obj/
+/Universe/bin/
+/Universe/obj/

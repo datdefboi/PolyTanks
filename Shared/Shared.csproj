@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>PolyTanks.Shared</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="System.Windows.Forms, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+        <HintPath>..\..\..\..\..\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref\5.0.0-rc.1.20452.2\ref\net5.0\System.Windows.Forms.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
