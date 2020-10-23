@@ -6,15 +6,17 @@ namespace Core.Specs
 {
     public class T1Appliance : TankAppliance
     {
-        public override VectorGroup Bounds { get; set; } =
-            VectorGroup.FromRect(new Size(70, 30));
+        public override VectorGroup Bounds =>
+            VectorGroup.FromRect(new Size(80, 60));
 
-        public override float BoundsRadius { get; set; } =
+        public override float BoundsRadius =>
             Sqrt(Square(70) + Square(30));
 
-        public override Vector Origin { get; set; } = new Vector(0, 0);
-        public override float MaxSpeed { get; set; } = 80f;
-        public override float Acceleration { get; set; } = 40f;
+        public override Vector Origin => new Vector(0, 0);
+        public override float MaxSpeed => 80f;
+        public override float Acceleration => 40f;
+        public override float RotationSpeed => 40f;
+        public override float TurretSpeed => 20f;
 
         private static VectorGroup headVGroup =
             new VectorGroup(

@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PolyTanks.Helpers;
+using PolyTanks.Shared;
+using PolyTanks.Shared.Maps;
 using Timer = System.Timers.Timer;
 
 namespace Server.Services
@@ -27,11 +29,16 @@ namespace Server.Services
         private Timer timer;
         private DateTime lastUpdate;
 
+        private MapBase _map;
+
         private Dictionary<string, PlayerData> _playerDatas = new Dictionary<string, PlayerData>();
 
         public RoomRuntimeService(IHubContext<RoomHub, IRoomHubClient> room, ILogger<RoomRuntimeService> logger)
         {
             _room = room;
+
+            _map = new BerlinMap();
+
             _logger = logger;
         }
 
@@ -43,11 +50,13 @@ namespace Server.Services
             return go;
         }
 
-        public void AddNewPlayer(string pID)
+        public async Task AddNewPlayerAsync(string pID)
         {
             var newTank = CreateNewTank();
 
             Console.WriteLine("New player in room");
+
+            await _room.Clients.Client(pID).LoadMap("Berlin");
 
             _playerDatas.Add(pID, new PlayerData
             {
@@ -56,8 +65,10 @@ namespace Server.Services
             });
         }
 
-        public void RemovePlayer(string pID)
+        public async Task RemovePlayerAsync(string pID)
         {
+            _playerDatas.Remove(pID);
+            await UpdateUniverseAsync();
         }
 
         public void HandleKeyDown(string pID, string key)
@@ -86,18 +97,29 @@ namespace Server.Services
         private async void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
             _logger.LogTrace("Universe tick");
+            await UpdateUniverseAsync();
+        }
+
+        private async Task UpdateUniverseAsync()
+        {
+            var elapsed = (float) (DateTime.Now - lastUpdate).TotalSeconds;
 
             foreach (var (id, data) in _playerDatas)
             {
                 var appliance = AppliancesRepository.ForID(data.tank.ApplianceID);
-                TankController.Update(data.tank, appliance, data,
-                    (float) (DateTime.Now - lastUpdate).TotalSeconds);
+                TankController.Update(data.tank, appliance, data, elapsed);
 
+                var isInters = TankController.HandleCollisions(data.tank, appliance, _map, elapsed);
+                
+
+                data.tank.IsInters = isInters;
+                var enemies = _playerDatas
+                    .Where(p => p.Key != id)
+                    .Select(p => p.Value.tank)
+                    .ToArray();
+                
                 await _room.Clients.Client(id)
-                    .UpdateTanks(data.tank, _playerDatas
-                        .Where(p => p.Key != id)
-                        .Select(p => p.Value.tank)
-                        .ToArray());
+                    .UpdateTanks(data.tank, enemies);
             }
 
             lastUpdate = DateTime.Now;

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -13,6 +14,22 @@ namespace PolyTanks.Helpers
         public VectorGroup(params Vector[] points)
         {
             this.points = points;
+
+            MaxSize = new Lazy<float>(() =>
+            {
+                var max = 0f;
+                foreach (var p1 in points)
+                {
+                    foreach (var p2 in points)
+                    {
+                        var d = p1.DistaceTo(p2);
+                        if (d > max)
+                            max = d;
+                    }
+                }
+
+                return max;
+            });
         }
 
         public static VectorGroup FromRect(Size bounds)
@@ -28,10 +45,14 @@ namespace PolyTanks.Helpers
             return new VectorGroup(bl, br, tr, tl);
         }
 
-        public IEnumerator GetEnumerator() => points.GetEnumerator();
-        IEnumerator<Vector> IEnumerable<Vector>.GetEnumerator() => ((IEnumerable<Vector>)points).GetEnumerator();
+        #region Misc
 
-        public static implicit operator PointF[](VectorGroup group) => group.points.Select(p => (PointF)p).ToArray();
+        public IEnumerator GetEnumerator() => points.GetEnumerator();
+        IEnumerator<Vector> IEnumerable<Vector>.GetEnumerator() => ((IEnumerable<Vector>) points).GetEnumerator();
+
+        public static implicit operator PointF[](VectorGroup group) => group.points.Select(p => (PointF) p).ToArray();
+
+        #endregion
 
         public VectorGroup Rotate(Vector relativePoint, float angle) => new VectorGroup(points.Select(p =>
         {
@@ -41,7 +62,13 @@ namespace PolyTanks.Helpers
 
         public VectorGroup Move(Vector direction) => new VectorGroup(points.Select(p => p + direction).ToArray());
 
-        public bool IsIntersectsByBounding(VectorGroup other)
+        public VectorGroup Scale(float factor) => new VectorGroup(points.Select(p => p * factor).ToArray());
+
+        #region Geometry
+
+        public Vector CenterOfMass => points.Aggregate(Vector.Zero, (a, acc) => acc + a) * (1f / points.Length);
+
+        public IEnumerable<((Vector a, Vector b) own, (Vector a, Vector b) other)> FindIntersections(VectorGroup other)
         {
             float Area(Vector a, Vector b, Vector c)
             {
@@ -65,21 +92,30 @@ namespace PolyTanks.Helpers
             bool Intersect(Vector a, Vector b, Vector c, Vector d)
             {
                 return SubIntersect(a.X, b.X, c.X, d.X)
-                    && SubIntersect(a.Y, b.Y, c.Y, d.Y)
-                    && Area(a, b, c) * Area(a, b, d) <= 0
-                    && Area(c, d, a) * Area(c, d, b) <= 0;
+                       && SubIntersect(a.Y, b.Y, c.Y, d.Y)
+                       && Area(a, b, c) * Area(a, b, d) <= 0
+                       && Area(c, d, a) * Area(c, d, b) <= 0;
             }
 
-            for (int i = 0; i < points.Length - 1; i++)
-                for (int j = 0; j < other.points.Length - 1; j++)
-                {
-                    if (Intersect(points[i], points[i + 1], other.points[j], other.points[j + 1]))
-                    {
-                        return true;
-                    }
-                }
+            var result = new List<((Vector a, Vector b), (Vector c, Vector d))>();
 
-            return false;
+            for (int i = 0; i < points.Length; i++)
+            for (int j = 0; j < other.points.Length; j++)
+            {
+                var iNext = (i + 1) % points.Length;
+                var jNext = (j + 1) % other.points.Length;
+                if (Intersect(points[i], points[iNext], other.points[j], other.points[jNext]))
+                {
+                    result.Add(((points[i], points[iNext]), (other.points[j], other.points[jNext])));
+                }
+            }
+
+            return result;
         }
+
+        #endregion
+
+
+        public Lazy<float> MaxSize { get; private set; }
     }
 }

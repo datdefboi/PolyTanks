@@ -2,13 +2,17 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Client;
 using Core;
 using Core.Specs;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using PolyTanks.Engine;
+using PolyTanks.Shared;
+using PolyTanks.Shared.Maps;
 using MathF = PolyTanks.Helpers.MathF;
 
 namespace PolyTanks.Frontend
@@ -27,6 +31,10 @@ namespace PolyTanks.Frontend
         private T1Appliance _t1Appliance = new T1Appliance();
         private IFrame _frame;
 
+        private MapBase _map;
+
+        private bool _isConnected = false;
+
         private async void RenderForm_Load(object sender, EventArgs e)
         {
             DoubleBuffered = true;
@@ -38,17 +46,32 @@ namespace PolyTanks.Frontend
         {
             roomHub = new HubConnectionBuilder()
                 .WithUrl("https://localhost:5001/room")
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.NumberHandling =
+                        JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                })
                 .Build();
 
             roomHub.On<TankState, IEnumerable<TankState>>("UpdateTanks", TankUpdates);
+            roomHub.On<string>("LoadMap", LoadMap);
 
             await roomHub.StartAsync();
+        }
+
+        private void LoadMap(string name)
+        {
+            _map = name switch
+            {
+                "Berlin" => new BerlinMap()
+            };
         }
 
         private void TankUpdates(TankState cs, IEnumerable<TankState> ens)
         {
             currentState = cs;
             enemiesStates = ens;
+            _isConnected = true;
             Refresh();
         }
 
@@ -58,19 +81,47 @@ namespace PolyTanks.Frontend
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
 
-            _frame = new Frame(g, Width, Height);
+            _frame = new Frame(g, Width, Height, 0.5f);
 
-            var rq = new List<TankState>();
-            rq.Add(currentState);
-            rq.AddRange(enemiesStates);
-
-            foreach (var state in rq)
+            if (_isConnected)
             {
-                if (state != default)
+                _frame.LookAt(currentState.Position);
+
+                var rq = new List<TankState>();
+                rq.Add(currentState);
+                rq.AddRange(enemiesStates);
+
+                foreach (var state in rq)
                 {
-                    _t1Appliance.Render(_frame, state);
+                    if (state != default)
+                    {
+                        _t1Appliance.Render(_frame, state);
+                        var bounds = _t1Appliance.Bounds
+                            .Rotate(_t1Appliance.Origin, state.Rotation)
+                            .Move(state.Position);
+                        _frame.DrawPolygon(bounds, Color.Lime);
+                    }
+                }
+
+                foreach (var wall in _map.Walls)
+                {
+                    _frame.FillPolygon(wall.Bounds.Move(wall.Position).Scale(_map.ScallingFactor),
+                        Color.FromName(wall.ColorCode));
+
+                    var bounds = wall.Bounds
+                        .Move(wall.Position)
+                        .Scale(_map.ScallingFactor);
+
+                    _frame.DrawPolygon(bounds, Color.MediumPurple);
                 }
             }
+            else
+            {
+                g.DrawString("Connecting", new Font(FontFamily.GenericMonospace, 20), Brushes.Black, 0, 0);
+            }
+
+            if (currentState?.IsInters ?? false)
+                g.DrawString("Oh no", new Font(FontFamily.GenericMonospace, 20), Brushes.PaleVioletRed, 0, 0);
 
             /*if (currentState != null)
                 View.PlaceCamOn(currentState);*/

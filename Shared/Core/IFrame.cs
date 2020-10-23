@@ -12,5 +12,7 @@ namespace Core
             bool isCurved = false);
 
         void FillCircle(Vector position, float radius, Color color);
+
+        void LookAt(Vector point);
     }
 }

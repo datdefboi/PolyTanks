@@ -7,6 +7,7 @@ namespace Core.HubSchemas
     public interface IRoomHubClient
     {
         public Task UpdateTanks(TankState own, TankState[] others);
+        public Task LoadMap(string name);
     }
 
 }
