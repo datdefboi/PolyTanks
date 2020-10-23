@@ -36,9 +36,9 @@ namespace Server.Services
         public RoomRuntimeService(IHubContext<RoomHub, IRoomHubClient> room, ILogger<RoomRuntimeService> logger)
         {
             _room = room;
-            
+
             _map = new BerlinMap();
-            
+
             _logger = logger;
         }
 
@@ -102,17 +102,24 @@ namespace Server.Services
 
         private async Task UpdateUniverseAsync()
         {
+            var elapsed = (float) (DateTime.Now - lastUpdate).TotalSeconds;
+
             foreach (var (id, data) in _playerDatas)
             {
                 var appliance = AppliancesRepository.ForID(data.tank.ApplianceID);
-                TankController.Update(data.tank, appliance, data,
-                    (float) (DateTime.Now - lastUpdate).TotalSeconds);
+                TankController.Update(data.tank, appliance, data, elapsed);
 
+                var isInters = TankController.HandleCollisions(data.tank, appliance, _map, elapsed);
+                
+
+                data.tank.IsInters = isInters;
+                var enemies = _playerDatas
+                    .Where(p => p.Key != id)
+                    .Select(p => p.Value.tank)
+                    .ToArray();
+                
                 await _room.Clients.Client(id)
-                    .UpdateTanks(data.tank, _playerDatas
-                        .Where(p => p.Key != id)
-                        .Select(p => p.Value.tank)
-                        .ToArray());
+                    .UpdateTanks(data.tank, enemies);
             }
 
             lastUpdate = DateTime.Now;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using Core.Specs;
+using Microsoft.AspNetCore.Builder.Extensions;
 using Microsoft.Extensions.Logging;
 using PolyTanks.Helpers;
 using PolyTanks.Shared;
@@ -22,11 +23,10 @@ namespace Core.Abstractions
                                         Math.Cos(Math.PI * (state.Speed / appliance.MaxSpeed) / 2f) * elapsed);
             }
 
-            var lastRotation = state.Rotation;
-
             if (data.keys.Contains("S"))
             {
-                state.Speed = (float) (Math.Max(0, state.Speed - 40 * elapsed));
+                state.Speed -= (float) (appliance.Acceleration *
+                                        Math.Cos(Math.PI * (state.Speed / appliance.MaxSpeed) / 2f) * elapsed);
             }
 
             if (data.keys.Contains("A"))
@@ -60,36 +60,42 @@ namespace Core.Abstractions
                 state.GunRotation = MathF.Reach(state.GunRotation, target, appliance.TurretSpeed * elapsed);
         }
 
-        public static bool CheckIntersections(TankState o1, TankAppliance appliance, MapBase map)
+        public static bool HandleCollisions(TankState state, TankAppliance appliance, MapBase map, float elapsed)
         {
-            var selfBounds = s1.Bounds
-                .Move(s1.Origin)
-                .Rotate(Vector.Zero, o1.Rotation)
-                .Move(o1.Position);
+            var selfBounds = appliance.Bounds
+                .Rotate(appliance.Origin, state.Rotation)
+                .Move(state.Position);
 
-            var opposBounds =
-                s2.Bounds
-                    .Move(s2.Origin)
-                    .Rotate(Vector.Zero, o2.Rotation)
-                    .Move(o2.Position);
+            var intersected = false;
 
-            if (o1.Position.DistaceTo(o2.Position) < s1.BoundsRadius + s2.BoundsRadius)
+            foreach (var wall in map.Walls)
             {
-                var isInters = selfBounds.IsIntersectsByBounding(opposBounds);
+                var opposBounds =
+                    wall.Bounds
+                        .Move(wall.Position)
+                        .Scale(map.ScallingFactor);
 
-                if (isInters)
+                var interections = selfBounds.FindIntersections(opposBounds);
+
+                foreach (var ((c, d), (a, b)) in interections)
                 {
-                    if (o2 is IIntersectable)
-                        ((IIntersectable) o2).OnIntersection(o1);
+                    intersected = true;
 
-                    if (this is IIntersectable)
-                        ((IIntersectable) this).OnIntersection(o2);
+                    var dir = state.Position.X * (a.Y - b.Y) * state.Position.Y * (b.X - a.X) + (a.X * b.Y - a.Y * b.X);
 
-                    return true;
+                    var v = b-a;
+                    
+                    if(dir == 0) // sorry, that's magic
+                        continue;
+                    
+                    var n = new Vector(v.Y, -v.X) * -(dir / MathF.Abs(dir)); // direction to throw body away
+
+                    state.Speed = 0;
+                    state.Position += n * 0.05f * elapsed;
                 }
             }
 
-            return false;
+            return intersected;
         }
     }
 }

@@ -10,7 +10,6 @@ namespace Core.Specs
 
         public abstract float MaxSpeed { get; }
         public abstract float Acceleration { get; }
-
         public abstract float RotationSpeed { get; }
         public abstract float TurretSpeed { get; }
         public abstract void Render(IFrame frame, TankState state);

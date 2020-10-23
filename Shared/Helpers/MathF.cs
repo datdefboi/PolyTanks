@@ -5,6 +5,7 @@ namespace PolyTanks.Helpers
 {
     public static class MathF
     {
+        public static float EPS = 1e-9f;
         public static float ToDeg(float a) => a / (float) Math.PI * 180f;
         public static float ToDeg(double a) => (float) a / (float) Math.PI * 180f;
 
@@ -20,8 +21,8 @@ namespace PolyTanks.Helpers
 
         public static float Abs(float a) => Math.Abs(a);
         public static float Sign(float a) => Math.Sign(a);
-        public static float Max(params float[] a) => a.Max();
-        public static float Min(params float[] a) => a.Min();
+        public static float Max(float a, float b) => a >= b ? a : b;
+        public static float Min(float a, float b) => a <= b ? a : b;
 
         public static float Reach(float from, float to, float step)
         {

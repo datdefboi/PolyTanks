@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using PolyTanks.Helpers;
 
 namespace PolyTanks.Shared

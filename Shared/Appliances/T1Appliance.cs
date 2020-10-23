@@ -7,7 +7,7 @@ namespace Core.Specs
     public class T1Appliance : TankAppliance
     {
         public override VectorGroup Bounds =>
-            VectorGroup.FromRect(new Size(70, 30));
+            VectorGroup.FromRect(new Size(80, 60));
 
         public override float BoundsRadius =>
             Sqrt(Square(70) + Square(30));

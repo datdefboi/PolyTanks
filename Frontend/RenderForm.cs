@@ -2,12 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Client;
 using Core;
 using Core.Specs;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using PolyTanks.Engine;
 using PolyTanks.Shared;
 using PolyTanks.Shared.Maps;
@@ -44,6 +46,11 @@ namespace PolyTanks.Frontend
         {
             roomHub = new HubConnectionBuilder()
                 .WithUrl("https://localhost:5001/room")
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.NumberHandling =
+                        JsonNumberHandling.AllowNamedFloatingPointLiterals;
+                })
                 .Build();
 
             roomHub.On<TankState, IEnumerable<TankState>>("UpdateTanks", TankUpdates);
@@ -63,6 +70,7 @@ namespace PolyTanks.Frontend
         private void TankUpdates(TankState cs, IEnumerable<TankState> ens)
         {
             currentState = cs;
+            enemiesStates = ens;
             _isConnected = true;
             Refresh();
         }
@@ -88,6 +96,10 @@ namespace PolyTanks.Frontend
                     if (state != default)
                     {
                         _t1Appliance.Render(_frame, state);
+                        var bounds = _t1Appliance.Bounds
+                            .Rotate(_t1Appliance.Origin, state.Rotation)
+                            .Move(state.Position);
+                        _frame.DrawPolygon(bounds, Color.Lime);
                     }
                 }
 
@@ -95,13 +107,21 @@ namespace PolyTanks.Frontend
                 {
                     _frame.FillPolygon(wall.Bounds.Move(wall.Position).Scale(_map.ScallingFactor),
                         Color.FromName(wall.ColorCode));
+
+                    var bounds = wall.Bounds
+                        .Move(wall.Position)
+                        .Scale(_map.ScallingFactor);
+
+                    _frame.DrawPolygon(bounds, Color.MediumPurple);
                 }
-                
             }
             else
             {
                 g.DrawString("Connecting", new Font(FontFamily.GenericMonospace, 20), Brushes.Black, 0, 0);
             }
+
+            if (currentState?.IsInters ?? false)
+                g.DrawString("Oh no", new Font(FontFamily.GenericMonospace, 20), Brushes.PaleVioletRed, 0, 0);
 
             /*if (currentState != null)
                 View.PlaceCamOn(currentState);*/
