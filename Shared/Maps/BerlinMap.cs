@@ -73,6 +73,18 @@ namespace PolyTanks.Shared.Maps
             ),
         };
 
+        public override Vector[] StartingPoints { get; } =
+        {
+            new Vector(-9, 1),
+            new Vector(9,-2),
+            new Vector(-8, 2),
+            new Vector(8,-3),
+            new Vector(-9, 3),
+            new Vector(7,-4),
+            new Vector(-8, 4),
+            new Vector(9,-4)
+        };
+
         public override float ScallingFactor => 80f;
     }
 }

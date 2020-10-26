@@ -100,6 +100,11 @@ namespace PolyTanks.Frontend
                             .Rotate(_t1Appliance.Origin, state.Rotation)
                             .Move(state.Position);
                         _frame.DrawPolygon(bounds, Color.Lime);
+
+                        var ray = new VectorGroup(state.Position,
+                            state.Position + Vector.FromAngle(state.GunRotation - 90f) * 2000f);
+                        if (state.Loading > 1)
+                            _frame.DrawPolygon(ray, Color.Chocolate);
                     }
                 }
 
@@ -114,6 +119,8 @@ namespace PolyTanks.Frontend
 
                     _frame.DrawPolygon(bounds, Color.MediumPurple);
                 }
+                
+                g.DrawString($"Score {currentState.Score}", new Font(FontFamily.GenericMonospace, 20), Brushes.Black, 0, 0);
             }
             else
             {

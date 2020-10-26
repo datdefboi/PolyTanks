@@ -25,8 +25,7 @@ namespace Core.Abstractions
 
             if (data.keys.Contains("S"))
             {
-                state.Speed -= (float) (appliance.Acceleration *
-                                        Math.Cos(Math.PI * (state.Speed / appliance.MaxSpeed) / 2f) * elapsed);
+                state.Speed = (float) PolyTanks.Helpers.MathF.Max(0, state.Speed - appliance.Acceleration * elapsed);
             }
 
             if (data.keys.Contains("A"))
@@ -43,6 +42,9 @@ namespace Core.Abstractions
                 state.GunRotation -= movement;
             }
 
+            state.Loading += 0.5f * elapsed;
+
+            //gun rotation
             var target = 0f;
             if (Math.Abs(data.mouseDir - state.GunRotation) > 180)
             {
@@ -60,7 +62,7 @@ namespace Core.Abstractions
                 state.GunRotation = MathF.Reach(state.GunRotation, target, appliance.TurretSpeed * elapsed);
         }
 
-        public static bool HandleCollisions(TankState state, TankAppliance appliance, MapBase map, float elapsed)
+        public static bool HandleCollisions(TankState state, TankAppliance appliance, VectorGroup oppos, float elapsed)
         {
             var selfBounds = appliance.Bounds
                 .Rotate(appliance.Origin, state.Rotation)
@@ -68,32 +70,25 @@ namespace Core.Abstractions
 
             var intersected = false;
 
-            foreach (var wall in map.Walls)
+            var interections = selfBounds.FindIntersections(oppos);
+
+            foreach (var ((c, d), (a, b)) in interections)
             {
-                var opposBounds =
-                    wall.Bounds
-                        .Move(wall.Position)
-                        .Scale(map.ScallingFactor);
+                intersected = true;
 
-                var interections = selfBounds.FindIntersections(opposBounds);
+                var dir = state.Position.X * (a.Y - b.Y) * state.Position.Y * (b.X - a.X) + (a.X * b.Y - a.Y * b.X);
 
-                foreach (var ((c, d), (a, b)) in interections)
-                {
-                    intersected = true;
+                var v = b - a;
 
-                    var dir = state.Position.X * (a.Y - b.Y) * state.Position.Y * (b.X - a.X) + (a.X * b.Y - a.Y * b.X);
+                if (dir == 0) // sorry, that's magic
+                    continue;
 
-                    var v = b-a;
-                    
-                    if(dir == 0) // sorry, that's magic
-                        continue;
-                    
-                    var n = new Vector(v.Y, -v.X) * -(dir / MathF.Abs(dir)); // direction to throw body away
+                var n = new Vector(v.Y, -v.X) * -(dir / MathF.Abs(dir)); // direction to throw body away
 
-                    state.Speed = 0;
-                    state.Position += n * 0.05f * elapsed;
-                }
+                state.Speed = 0;
+                state.Position += n * 0.05f * elapsed;
             }
+
 
             return intersected;
         }

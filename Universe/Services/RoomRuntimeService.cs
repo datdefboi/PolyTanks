@@ -58,9 +58,16 @@ namespace Server.Services
 
             await _room.Clients.Client(pID).LoadMap("Berlin");
 
+            var availablePoint = Enumerable.Range(0, _map.StartingPoints.Length);
+            var n = availablePoint.Except(_playerDatas.Values.Select(p => p.spawnPointNumber)).First();
+
+            newTank.Position = _map.StartingPoints[n] * _map.ScallingFactor;
+
             _playerDatas.Add(pID, new PlayerData
             {
                 keys = new List<string>(),
+                spawnPointNumber = n,
+                team = n % 2,
                 tank = newTank
             });
         }
@@ -100,6 +107,79 @@ namespace Server.Services
             await UpdateUniverseAsync();
         }
 
+        private Vector GetIntersectionPoint(((Vector p1, Vector p2) own,
+            (Vector p3, Vector p4) other) group)
+        {
+            var (p1, p2) = group.own;
+            var (p3, p4) = group.other;
+
+            if (p1.X >= p2.X)
+            {
+                var t = p1;
+                p1 = p2;
+                p2 = t;
+            }
+
+            if (p3.X >= p4.X)
+            {
+                var t = p3;
+                p3 = p4;
+                p4 = t;
+            }
+
+            float k1 = 0;
+            if (p2.Y == p1.Y)
+                k1 = 0;
+            else
+            {
+                k1 = (p2.Y - p1.Y) / (p2.X - p1.X);
+            }
+
+            float k2 = 0;
+            if (p4.Y == p3.Y)
+                k2 = 0;
+            else
+            {
+                k2 = (p4.Y - p3.Y) / (p4.X - p3.X);
+            }
+
+            float b1 = p1.Y - k1 * p1.X;
+            float b2 = p3.Y - k2 * p3.X;
+
+            float x = (b2 - b1) / (k1 - k2);
+            float y = k1 * x + b1;
+
+            return new Vector(x, y);
+        }
+
+        private PlayerData? CheckHit(string currentId, Vector from, float direction)
+        {
+            var totalHist = new List<(Vector pos, PlayerData? pd)>();
+
+            var ray = new VectorGroup(from, from + Vector.FromAngle(direction - 90f) * 2000f);
+            foreach (var pd in _playerDatas
+                .Where(p => p.Key != currentId)
+                .Select(p => p.Value))
+            {
+                var pdAppliance = AppliancesRepository.ForID(pd.tank.ApplianceID);
+                var intersections = ray.FindIntersections(pdAppliance.Bounds
+                    .Rotate(pdAppliance.Origin, pd.tank.Rotation)
+                    .Move(pd.tank.Position));
+
+                foreach (var intersection in intersections)
+                {
+                    var p = GetIntersectionPoint(intersection);
+                    totalHist.Add((p, pd));
+                }
+            }
+
+            totalHist.Sort((a, b) => from.DistaceTo(a.pos).CompareTo(from.DistaceTo(b.pos)));
+            if (totalHist.Count == 0)
+                return default;
+
+            return totalHist.First().pd;
+        }
+
         private async Task UpdateUniverseAsync()
         {
             var elapsed = (float) (DateTime.Now - lastUpdate).TotalSeconds;
@@ -109,15 +189,43 @@ namespace Server.Services
                 var appliance = AppliancesRepository.ForID(data.tank.ApplianceID);
                 TankController.Update(data.tank, appliance, data, elapsed);
 
-                var isInters = TankController.HandleCollisions(data.tank, appliance, _map, elapsed);
-                
-
-                data.tank.IsInters = isInters;
                 var enemies = _playerDatas
                     .Where(p => p.Key != id)
                     .Select(p => p.Value.tank)
                     .ToArray();
-                
+
+                foreach (var wall in _map.Walls)
+                {
+                    var opposBounds =
+                        wall.Bounds
+                            .Move(wall.Position)
+                            .Scale(_map.ScallingFactor);
+
+                    TankController.HandleCollisions(data.tank, appliance, opposBounds, elapsed);
+                }
+
+                foreach (var e in enemies)
+                {
+                    var oApp = AppliancesRepository.ForID(e.ApplianceID);
+                    var bounds = oApp.Bounds
+                        .Rotate(oApp.Origin, e.Rotation)
+                        .Move(e.Position);
+
+                    TankController.HandleCollisions(data.tank, appliance, bounds, elapsed);
+                }
+
+                if (data.keys.Contains("Space") && data.tank.Loading >= 1)
+                {
+                    data.tank.Loading = 0;
+                    var target = CheckHit(id, data.tank.Position, data.tank.GunRotation);
+                    if (target != default)
+                    {
+                        target.tank.Position = _map.StartingPoints[target.spawnPointNumber] * _map.ScallingFactor;
+                        data.tank.Score++;
+                        data.tank.Speed = 0;
+                    }
+                }
+
                 await _room.Clients.Client(id)
                     .UpdateTanks(data.tank, enemies);
             }
